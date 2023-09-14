@@ -1,0 +1,49 @@
+# Mongodb depends on volumes to keep the data alive.
+
+services:
+    mongo:
+        image: mongo
+        container_name: mongodb
+        env_file: ./.env
+        ports:
+            - $MONGO_LOCAL_PORT:$MONGO_DOCKER_PORT
+        volumes:
+            - data-volume:/data/db
+
+    server:
+        build:
+            context: ./server
+            dockerfile: Dockerfile
+            args:
+                - DOCKER_PORT=$SERVER_DOCKER_PORT
+        image: tc-node-backend
+        container_name: backend
+        ports:
+            - $SERVER_LOCAL_PORT:$SERVER_DOCKER_PORT
+        env_file: ./.env
+        volumes:
+            - ./server/:/app
+            - /app/node_modules
+        depends_on:
+            - mongo
+
+    client:
+        build:
+            context: ./client
+            dockerfile: Dockerfile
+            args:
+                - API_URL=$SERVER_ORIGIN
+                - DOCKER_PORT=$CLIENT_DOCKER_PORT
+        image: tc-react-frontend
+        container_name: frontend
+        ports:
+            - $CLIENT_LOCAL_PORT:$CLIENT_DOCKER_PORT
+        env_file: ./.env
+        volumes:
+            - ./client/:/app
+            - /app/node_modules
+        depends_on:
+            - server
+
+volumes:
+    data-volume:
